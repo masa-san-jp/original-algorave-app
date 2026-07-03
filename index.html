@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ALGORAVE://TERMINALS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+  :root { --bg:#0b0e14; --panel:#05070d; --line:#232838; --dim:#5b6379; --mid:#8a93ad; --fg:#cdd6f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 3px); }
+  @keyframes beatPulse { 0% { box-shadow:0 0 14px var(--hue), inset 0 0 8px rgba(255,255,255,0.04); } 100% { box-shadow:0 0 2px var(--hue); } }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .blink { animation: blink 1s step-end infinite; color:#59f7ff; }
+  header { display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .logo { font-size:14px; letter-spacing:0.2em; font-weight:700; }
+  .logo .sl { color:#ff5ce1; }
+  .btn { font:12px ui-monospace,monospace; letter-spacing:0.08em; padding:8px 14px; border-radius:4px; cursor:pointer;
+    background:transparent; border:1px solid var(--hue,#8a93ad); color:var(--hue,#8a93ad); }
+  .btn:hover { background: color-mix(in srgb, var(--hue,#8a93ad) 18%, transparent); }
+  .btn.solid { background:var(--hue); color:#05070d; font-weight:700; }
+  .btn:disabled { opacity:0.4; cursor:default; }
+  .btn:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+  .lbl { font-size:10px; letter-spacing:0.1em; color:var(--mid); }
+  input[type=range] { accent-color:var(--hue,#59f7ff); }
+  .bars { display:flex; flex-direction:column; gap:8px; padding:10px 16px; }
+  .bars .row { display:flex; gap:8px; align-items:center; }
+  .bars input[type=text], .bars input[type=password] { flex:1; background:var(--panel); border:1px solid var(--line); color:var(--fg);
+    padding:8px 12px; border-radius:4px; font:13px ui-monospace,monospace; outline:none; }
+  .tag { font-size:11px; color:var(--mid); letter-spacing:0.1em; white-space:nowrap; min-width:52px; }
+  #tabs { display:none; gap:8px; padding:0 16px 10px; }
+  #tracks { display:grid; gap:14px; padding:4px 16px 24px; grid-template-columns:repeat(auto-fit, minmax(340px,1fr)); }
+  .term { background:var(--panel); border:1px solid var(--hue); border-radius:6px; display:flex; flex-direction:column; overflow:hidden; }
+  .term.running { animation: beatPulse var(--measure,1.8s) ease-out infinite; }
+  .thead { display:flex; align-items:center; gap:8px; padding:7px 12px; font-size:11px; letter-spacing:0.12em; color:var(--hue);
+    border-bottom:1px solid color-mix(in srgb, var(--hue) 40%, transparent); }
+  .thead .x { margin-left:auto; background:none; border:none; color:var(--hue); cursor:pointer; font-size:14px; }
+  .term textarea { background:transparent; color:var(--hue); border:none; outline:none; resize:none; width:100%;
+    font:15px/1.7 ui-monospace, Menlo, Consolas, monospace; padding:12px 14px; min-height:130px; flex:1; caret-color:var(--hue); }
+  .terr { padding:0 12px 6px; font-size:11px; color:#ff5ce1; }
+  .tfoot { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 12px;
+    border-top:1px solid color-mix(in srgb, var(--hue) 30%, transparent); }
+  .tfoot label { display:flex; align-items:center; gap:5px; font-size:10px; letter-spacing:0.1em;
+    color:color-mix(in srgb, var(--hue) 70%, #fff); }
+  .tfoot input[type=range] { width:80px; accent-color:var(--hue); }
+  #help { padding:0 16px 28px; font-size:11px; line-height:1.9; color:var(--dim); }
+  #help b { color:var(--mid); }
+  #overlay { position:fixed; inset:0; z-index:50; background:rgba(5,7,13,0.94); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:24px; padding:24px; text-align:center; }
+  #overlay .logo { font-size:16px; letter-spacing:0.25em; color:#59f7ff; }
+  #overlay .go { font-size:20px; padding:18px 36px; }
+  #overlay p { font-size:13px; line-height:2.1; color:var(--mid); max-width:440px; margin:0; }
+  #overlay .note { color:var(--dim); }
+  @media (max-width:760px) {
+    #tabs { display:flex; }
+    #tabs .btn { flex:1; padding:12px 0; font-size:15px; font-weight:700; }
+    #tracks { grid-template-columns:1fr; }
+    .term textarea { min-height:180px; }
+    .term.m-hidden { display:none; }
+    #addTrack, .thead .x { display:none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .term.running { animation:none; box-shadow:0 0 8px var(--hue); } .blink { animation:none; } }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="logo">ALGORAVE<span class="sl">://</span>TERMINALS</div>
+  <button class="btn solid go" style="--hue:#a6ff4d" id="boot">▶ タップして演奏開始</button>
+  <p>タップするとデモパターンがすぐ鳴り始めます。<br>
+  遊び方: ① コードを書き換える → ② <b style="color:#a6ff4d">RUN</b> で反映 → ③ VOL / FILT でミックス<br>
+  <span class="note">音が出ないときは端末の音量を確認。iPhoneはマナーモード解除が必要です。</span></p>
+</div>
+
+<header>
+  <div class="logo">ALGORAVE<span class="sl">://</span>TERMINALS<span class="blink">▮</span></div>
+  <span class="lbl">BPM <span id="bpmVal">132</span></span>
+  <input type="range" id="bpm" min="80" max="180" value="132" style="width:110px" aria-label="BPM">
+  <button class="btn" id="master" style="--hue:#a6ff4d">▶ START ALL</button>
+  <button class="btn" id="addTrack" style="--hue:#8a93ad">+ TRACK</button>
+  <span class="lbl" style="margin-left:auto">cycle <span id="cycle">0</span></span>
+</header>
+
+<div class="bars">
+  <div class="row">
+    <span class="tag">AI指示</span>
+    <input type="text" id="aiPrompt" placeholder="例: もっとアシッドに / ブレイクビーツ化 / ベースを追加">
+  </div>
+  <div class="row">
+    <span class="tag">APIキー</span>
+    <input type="password" id="apiKey" placeholder="sk-ant-... (AI機能を使う場合のみ。この端末にだけ保存されます)">
+  </div>
+</div>
+
+<div id="tabs"></div>
+<div id="tracks"></div>
+
+<div id="help">
+  記法: <b>bd</b> キック / <b>sn</b> スネア / <b>hh</b>・<b>oh</b> ハイハット / <b>cp</b> クラップ /
+  <b>c2 e3 g#2</b> シンセ音 / <b>~</b> 休符 / <b>[a b]</b> 細分化 / <b>hh*4</b> 反復。
+  1行 = 1小節、複数行は同時再生。Ctrl+Enter(⌘+Enter)で即RUN。
+  ✦AIは現在のパターンを発展させたコードをエディタに入れるだけなので、確認してRUNで反映。
+</div>
+
+<script>
+"use strict";
+// ---------- パーサ ----------
+function splitTop(s){const p=[];let d=0,c="";for(const ch of s){if(ch==="[")d++;if(ch==="]")d--;
+  if(ch===" "&&d===0){if(c)p.push(c);c="";}else c+=ch;}if(c)p.push(c);return p;}
+function parseSeq(s,start,dur,out){const parts=splitTop(s.trim());if(!parts.length)return;
+  const step=dur/parts.length;
+  parts.forEach((tok,i)=>{let t=start+i*step,rep=1,body=tok;
+    const m=tok.match(/\*(\d+)$/);if(m){rep=Math.max(1,+m[1]);body=tok.slice(0,m.index);}
+    const sub=step/rep;
+    for(let r=0;r<rep;r++){const tt=t+r*sub;
+      if(body.startsWith("[")&&body.endsWith("]"))parseSeq(body.slice(1,-1),tt,sub,out);
+      else if(body!=="~"&&body!=="")out.push({pos:tt,tok:body.toLowerCase()});}});}
+function parsePattern(code){const ev=[];
+  code.split("\n").map(l=>l.replace(/#.*$/,"").trim()).filter(Boolean)
+    .forEach(l=>parseSeq(l,0,1,ev));return ev;}
+const NOTE_RE=/^[a-g](#|b)?[0-8]$/;
+
+// ---------- 音源 ----------
+let master=null;
+function getMaster(){if(!master)master=new Tone.Gain(0.9).toDestination();return master;}
+function buildInst(){
+  const m=getMaster();
+  const filter=new Tone.Filter(12000,"lowpass").connect(m);
+  const gain=new Tone.Gain(0.8).connect(filter);
+  const kick=new Tone.MembraneSynth({octaves:6,pitchDecay:0.045}).connect(gain);
+  const snare=new Tone.NoiseSynth({noise:{type:"pink"},envelope:{attack:0.001,decay:0.14,sustain:0}}).connect(gain);
+  const hatHP=new Tone.Filter(8000,"highpass").connect(gain);
+  const hat=new Tone.NoiseSynth({noise:{type:"white"},envelope:{attack:0.001,decay:0.04,sustain:0}}).connect(hatHP);
+  const hatOpen=new Tone.NoiseSynth({noise:{type:"white"},envelope:{attack:0.001,decay:0.25,sustain:0}}).connect(hatHP);
+  const clap=new Tone.NoiseSynth({noise:{type:"pink"},envelope:{attack:0.002,decay:0.2,sustain:0}}).connect(gain);
+  const synth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sawtooth"},
+    envelope:{attack:0.005,decay:0.15,sustain:0.15,release:0.08},volume:-8}).connect(gain);
+  return {gain,filter,
+    trigger(tok,time){try{
+      if(tok==="bd"||tok==="kick")kick.triggerAttackRelease("C1","8n",time);
+      else if(tok==="sn"||tok==="sd")snare.triggerAttackRelease("16n",time);
+      else if(tok==="hh")hat.triggerAttackRelease("32n",time);
+      else if(tok==="oh")hatOpen.triggerAttackRelease("16n",time);
+      else if(tok==="cp")clap.triggerAttackRelease("16n",time);
+      else if(NOTE_RE.test(tok))synth.triggerAttackRelease(tok.toUpperCase(),"16n",time);
+    }catch(e){}},
+    dispose(){[kick,snare,hat,hatOpen,clap,synth,hatHP,gain,filter].forEach(n=>n.dispose());}};
+}
+
+// ---------- 状態 ----------
+const HUES=["#ffb454","#59f7ff","#ff5ce1","#a6ff4d","#c09bff","#ff7a59"];
+const DEFAULTS=["bd ~ bd ~\n~ sn ~ sn\nhh*8","c2 ~ [c2 c3] g1\n~ ~ eb2 ~"];
+const MAX_TRACKS=6;
+let uid=0, tracks=[], playing=false, booted=false, cycle=0, mobileTab=0, loopId=null;
+const $=id=>document.getElementById(id);
+
+function newTrack(code){return {id:++uid,code,running:false,muted:false,gain:0.8,cutoff:100,
+  inst:null,events:null,el:null,refs:{}};}
+
+// ---------- トランスポート ----------
+async function ensureTransport(){
+  await Tone.start();
+  if(loopId===null){
+    loopId=Tone.Transport.scheduleRepeat(time=>{
+      const measure=(60/Tone.Transport.bpm.value)*4;
+      for(const t of tracks){
+        if(!t.running||t.muted||!t.events||!t.inst)continue;
+        for(const ev of t.events)t.inst.trigger(ev.tok,time+ev.pos*measure);
+      }
+      Tone.Draw.schedule(()=>{cycle++;$("cycle").textContent=cycle;},time);
+    },"1m");
+  }
+  if(Tone.Transport.state!=="started"){Tone.Transport.start("+0.05");playing=true;updateMaster();}
+}
+function updateMaster(){
+  const b=$("master");
+  b.textContent=playing?"■ STOP ALL":"▶ START ALL";
+  b.style.setProperty("--hue",playing?"#ff5ce1":"#a6ff4d");
+  document.body.style.setProperty("--measure",((60/(+$("bpm").value))*4)+"s");
+}
+async function runTrack(t){
+  const evs=parsePattern(t.code);
+  if(!t.inst)t.inst=buildInst();
+  t.events=evs; t.running=evs.length>0;
+  t.refs.err.textContent=evs.length?"":"有効なトークンがありません";
+  hideOverlay();
+  if(evs.length)await ensureTransport();
+  paintTrack(t);
+}
+function stopAll(){
+  Tone.Transport.stop(); playing=false;
+  tracks.forEach(t=>{t.running=false;paintTrack(t);});
+  updateMaster();
+}
+async function runAll(){
+  await Tone.start();
+  for(const t of tracks){
+    const evs=parsePattern(t.code);
+    if(evs.length){if(!t.inst)t.inst=buildInst();t.events=evs;t.running=true;paintTrack(t);}
+  }
+  hideOverlay();
+  await ensureTransport();
+}
+function hideOverlay(){if(!booted){booted=true;$("overlay").style.display="none";}}
+
+// ---------- AI ----------
+const AI_SYSTEM=`You generate patterns for a mini live-coding music language used in an algorave app.
+Tokens: bd(kick) sn(snare) hh(closed hihat) oh(open hihat) cp(clap), note names like c2 e3 g#2 a#1 (playable synth notes), ~ = rest, [a b] = subdivide one step, token*n = repeat n times within its step.
+Each line is one 4/4 measure cycle; multiple lines play in parallel (layers).
+Keep patterns musical, danceable, and performable live. 2-5 lines max. Respond ONLY with JSON: {"pattern":"line1\\nline2"} - no markdown, no explanation.`;
+async function aiGenerate(t){
+  const key=$("apiKey").value.trim();
+  if(!key){t.refs.err.textContent="AI機能にはAPIキーが必要です(上の入力欄へ)";return;}
+  localStorage.setItem("algorave_api_key",key);
+  t.refs.ai.disabled=true;t.refs.ai.textContent="AI…";t.refs.err.textContent="";
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key,
+        "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:AI_SYSTEM,
+        messages:[{role:"user",content:`BPM: ${$("bpm").value}\nCurrent pattern:\n${t.code||"(empty)"}\n\nInstruction: ${$("aiPrompt").value||"Evolve this pattern: keep the groove recognizable but add variation and energy."}`}]})});
+    if(!res.ok)throw new Error("api "+res.status);
+    const data=await res.json();
+    const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+    if(!parsed.pattern)throw new Error("no pattern");
+    t.code=parsed.pattern;t.refs.ta.value=parsed.pattern;
+    t.refs.err.textContent="AI案を挿入しました。RUNで反映";
+  }catch(e){
+    t.refs.err.textContent="AI生成に失敗: "+e.message+"(キーとネット接続を確認)";
+  }
+  t.refs.ai.disabled=false;t.refs.ai.textContent="✦ AI";
+}
+
+// ---------- UI ----------
+function trackName(t){return "TRACK "+String.fromCharCode(65+tracks.indexOf(t));}
+function paintTrack(t){
+  if(!t.el)return;
+  t.el.classList.toggle("running",t.running&&playing&&!t.muted);
+  t.refs.status.textContent=t.running?"RUNNING":"IDLE";
+  t.refs.muteTag.textContent=t.muted?"MUTED":"";
+  t.refs.mute.textContent=t.muted?"UNMUTE":"MUTE";
+  t.refs.stop.disabled=!t.running;
+  t.refs.name.textContent=trackName(t);
+  renderTabs();
+}
+function renderTrack(t){
+  const idx=tracks.indexOf(t),hue=HUES[idx%HUES.length];
+  const div=document.createElement("div");
+  div.className="term";div.style.setProperty("--hue",hue);
+  div.innerHTML=`
+    <div class="thead"><span class="tname"></span><span class="tstatus" style="opacity:0.6"></span>
+      <span class="tmute" style="color:#ff5ce1"></span><button class="x" aria-label="トラックを削除">×</button></div>
+    <textarea spellcheck="false"></textarea>
+    <div class="terr"></div>
+    <div class="tfoot">
+      <button class="btn solid run">RUN ⏎</button>
+      <button class="btn stop">STOP</button>
+      <button class="btn mute">MUTE</button>
+      <button class="btn ai">✦ AI</button>
+      <label>VOL<input type="range" class="vol" min="0" max="1" step="0.01" value="${t.gain}"></label>
+      <label>FILT<input type="range" class="filt" min="0" max="100" value="${t.cutoff}"></label>
+    </div>`;
+  const q=s=>div.querySelector(s);
+  t.el=div;
+  t.refs={name:q(".tname"),status:q(".tstatus"),muteTag:q(".tmute"),ta:q("textarea"),err:q(".terr"),
+    run:q(".run"),stop:q(".stop"),mute:q(".mute"),ai:q(".ai")};
+  t.refs.ta.value=t.code;
+  t.refs.ta.addEventListener("input",e=>t.code=e.target.value);
+  t.refs.ta.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();runTrack(t);}});
+  t.refs.run.addEventListener("click",()=>runTrack(t));
+  t.refs.stop.addEventListener("click",()=>{t.running=false;paintTrack(t);});
+  t.refs.mute.addEventListener("click",()=>{t.muted=!t.muted;paintTrack(t);});
+  t.refs.ai.addEventListener("click",()=>aiGenerate(t));
+  q(".vol").addEventListener("input",e=>{t.gain=+e.target.value;if(t.inst)t.inst.gain.gain.rampTo(t.gain,0.05);});
+  q(".filt").addEventListener("input",e=>{t.cutoff=+e.target.value;
+    if(t.inst)t.inst.filter.frequency.rampTo(80*Math.pow(150,t.cutoff/100),0.05);});
+  q(".x").addEventListener("click",()=>{
+    if(tracks.length<=1)return;
+    tracks=tracks.filter(x=>x!==t);
+    if(t.inst)t.inst.dispose();
+    div.remove();renderAll();
+  });
+  $("tracks").appendChild(div);
+  paintTrack(t);
+}
+function renderAll(){
+  $("tracks").innerHTML="";
+  tracks.forEach(t=>{t.el=null;renderTrack(t);});
+  applyMobile();
+}
+function renderTabs(){
+  const tabs=$("tabs");tabs.innerHTML="";
+  tracks.slice(0,2).forEach((t,i)=>{
+    const hue=HUES[i%HUES.length];
+    const b=document.createElement("button");
+    b.className="btn";b.style.setProperty("--hue",hue);
+    b.textContent="TRACK "+String.fromCharCode(65+i)+(t.running?" ●":"");
+    if(mobileTab===i){b.style.background=hue;b.style.color="#05070d";}
+    b.addEventListener("click",()=>{mobileTab=i;renderTabs();applyMobile();});
+    tabs.appendChild(b);
+  });
+}
+function applyMobile(){
+  const mobile=window.innerWidth<760;
+  tracks.forEach((t,i)=>{
+    if(!t.el)return;
+    t.el.classList.toggle("m-hidden",mobile&&i!==Math.min(mobileTab,1));
+    if(mobile&&i>=2)t.el.classList.add("m-hidden");
+  });
+}
+window.addEventListener("resize",applyMobile);
+
+// ---------- マスター操作 ----------
+$("bpm").addEventListener("input",e=>{
+  $("bpmVal").textContent=e.target.value;
+  Tone.Transport.bpm.value=+e.target.value;
+  document.body.style.setProperty("--measure",((60/(+e.target.value))*4)+"s");
+});
+$("master").addEventListener("click",()=>playing?stopAll():runAll());
+$("addTrack").addEventListener("click",()=>{
+  if(tracks.length>=MAX_TRACKS)return;
+  const t=newTrack("bd ~ ~ bd");tracks.push(t);renderTrack(t);applyMobile();
+});
+$("boot").addEventListener("click",runAll);
+
+// ---------- 初期化 ----------
+Tone.Transport.bpm.value=132;
+const savedKey=localStorage.getItem("algorave_api_key");
+if(savedKey)$("apiKey").value=savedKey;
+tracks=DEFAULTS.map(c=>newTrack(c));
+renderAll();
+updateMaster();
+</script>
+</body>
+</html>
