@@ -3,8 +3,14 @@
 スマホ・ラップトップで演奏できるalgoraveアプリケーション。ターミナル形式で複数トラックを操作し、ミキシング・AI生成を行う。
 
 ## 構成
-- `index.html` — 参照プロトタイプ(単一ファイル、ビルド不要、Tone.jsをCDN読み込み)
+- `app/` — **v1 実装本体**(TypeScript + Vite + Tone.js、テスト・CI付き)。詳細は [`app/README.md`](app/README.md)
+- `index.html` — 着想元の参照プロトタイプ(単一ファイル、ビルド不要、Tone.jsをCDN読み込み)
 - `docs/` — 仕様書・セットアップ手順
+
+## v1 のクイックスタート
+```bash
+cd app && npm install && npm run dev
+```
 
 ## v1 発注仕様書(外注実装用)
 | 文書 | 内容 |
