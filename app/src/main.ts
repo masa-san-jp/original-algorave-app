@@ -8,8 +8,10 @@ import { parse, layersHaveSound } from './parser';
 import { buildInstrument } from './audio';
 import { ensureTransport, stopTransport, setBpm } from './scheduler';
 import { aiGenerate } from './ai';
-import { gridToCode, codeToGrid } from './stepgrid';
+import { gridToCode, codeToGrid, STEP_COUNT } from './stepgrid';
 import type { Lane } from './stepgrid';
+import { arpToCodeLine } from './arpeggiator';
+import type { ArpConfig } from './arpeggiator';
 import {
   HUES,
   MAX_TRACKS,
@@ -131,10 +133,16 @@ const callbacks: TrackCallbacks = {
   },
   onToggleMode: (t) => toggleMode(t),
   onStepToggle: (t, lane, step) => stepToggle(t, lane, step),
+  onSampleFile: (t, file) => loadSampleForTrack(t, file, `読込: ${file.name}`),
+  onSampleRecordToggle: (t) => sampleRecordToggle(t),
+  onArpChange: (t, patch) => arpChange(t, patch),
 };
 
 // ---------------------------------------------------------------------------
-// STEPモード(ステップシーケンサー): グリッドは常に t.code の別ビュー(stepgrid.ts)
+// STEPモード(ステップシーケンサー): グリッド・ARPは常に t.code の別ビュー
+// (stepgrid.ts / arpeggiator.ts)。トグル操作は次サイクルから即座に反映する
+// (構文的に常に妥当な状態しか生成しないため、CODEモードのRUN必須ルールとは
+// 意図的に異なる。追補: 20260705-algorave-v1-addendum-sequencer.md)
 // ---------------------------------------------------------------------------
 function toggleMode(t: Track): void {
   if (t.mode === 'code') {
@@ -150,14 +158,91 @@ function toggleMode(t: Track): void {
   repaint(t);
 }
 
-function stepToggle(t: Track, lane: Lane, step: number): void {
-  t.grid[lane][step] = !t.grid[lane][step];
-  t.code = gridToCode(t.grid);
+/** グリッド + ARP を合成してコードを再生成し、即座に反映する。 */
+function regenerateStepCode(t: Track): void {
+  const gridCode = gridToCode(t.grid);
+  const arpLine = arpToCodeLine(t.arp, STEP_COUNT);
+  t.code = [gridCode, arpLine].filter(Boolean).join('\n');
   if (t.refs) t.refs.textarea.value = t.code;
   persist();
-  // ステップ操作は「叩いた通りにすぐ音が変わる」ことが直感的なため、
-  // 明示RUNを待たず即座に反映する(次サイクル境界からという挙動はFR-03のまま)。
   void runTrack(t);
+}
+
+function stepToggle(t: Track, lane: Lane, step: number): void {
+  t.grid[lane][step] = !t.grid[lane][step];
+  regenerateStepCode(t);
+}
+
+function arpChange(t: Track, patch: Partial<ArpConfig>): void {
+  t.arp = { ...t.arp, ...patch };
+  regenerateStepCode(t);
+}
+
+// ---------------------------------------------------------------------------
+// サンプラー(smレーン): アップロード / マイク録音。音声バッファは Instrument が
+// 保持し、localStorage には永続化しない(セッション中のみ)。
+// ---------------------------------------------------------------------------
+const activeRecorders = new Map<
+  number,
+  { recorder: MediaRecorder; chunks: Blob[]; stream: MediaStream }
+>();
+
+function loadSampleForTrack(t: Track, blob: Blob, label: string): void {
+  if (!t.inst) t.inst = buildInstrument();
+  const url = URL.createObjectURL(blob);
+  t.inst
+    .loadSampleFromUrl(url)
+    .then(() => {
+      t.sampleStatus = label;
+      t.error = null;
+      repaint(t);
+    })
+    .catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      t.error = `サンプルの読み込みに失敗: ${msg}`;
+      repaint(t);
+    })
+    .finally(() => {
+      URL.revokeObjectURL(url);
+    });
+}
+
+async function startRecording(t: Track): Promise<void> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    t.error = 'この環境では録音がサポートされていません';
+    repaint(t);
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+      stream.getTracks().forEach((tr) => tr.stop());
+      activeRecorders.delete(t.id);
+      t.recording = false;
+      loadSampleForTrack(t, blob, '録音済み');
+    };
+    recorder.start();
+    activeRecorders.set(t.id, { recorder, chunks, stream });
+    t.recording = true;
+    t.error = null;
+    repaint(t);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    t.error = `マイクにアクセスできません: ${msg}`;
+    repaint(t);
+  }
+}
+
+function sampleRecordToggle(t: Track): void {
+  const rec = activeRecorders.get(t.id);
+  if (rec) rec.recorder.stop();
+  else void startRecording(t);
 }
 
 function mountTrack(t: Track): void {
@@ -178,6 +263,12 @@ function renderAll(): void {
 
 function deleteTrack(t: Track): void {
   if (tracks.length <= 1) return;
+  const rec = activeRecorders.get(t.id);
+  if (rec) {
+    rec.recorder.stop();
+    rec.stream.getTracks().forEach((tr) => tr.stop());
+    activeRecorders.delete(t.id);
+  }
   tracks = tracks.filter((x) => x !== t);
   if (t.inst) t.inst.dispose();
   t.el?.remove();

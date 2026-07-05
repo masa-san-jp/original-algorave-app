@@ -4,9 +4,10 @@ import { parse } from '../src/parser';
 import { query } from '../src/pattern';
 
 describe('stepgrid: emptyGrid', () => {
-  it('has all 5 lanes, all false, length STEP_COUNT', () => {
+  it('has all 8 lanes (drums + bass/pad/sampler), all false, length STEP_COUNT', () => {
     const g = emptyGrid();
-    expect(STEP_LANES.length).toBe(5);
+    expect(STEP_LANES.length).toBe(8);
+    expect(STEP_LANES).toEqual(['bd', 'sd', 'hh', 'oh', 'cp', 'bs', 'pd', 'sm']);
     for (const lane of STEP_LANES) {
       expect(g[lane]).toHaveLength(STEP_COUNT);
       expect(g[lane].every((v) => v === false)).toBe(true);
@@ -91,5 +92,18 @@ describe('stepgrid: codeToGrid', () => {
     );
     const { exact } = codeToGrid(toks.join(' '));
     expect(exact).toBe(false);
+  });
+
+  it('supports the bass/pad/sampler lanes and their aliases', () => {
+    const bsLine = Array.from({ length: STEP_COUNT }, (_, i) => (i === 0 ? 'bass' : '~')).join(
+      ' ',
+    );
+    const pdLine = Array.from({ length: STEP_COUNT }, (_, i) => (i === 4 ? 'pad' : '~')).join(' ');
+    const smLine = Array.from({ length: STEP_COUNT }, (_, i) => (i === 8 ? 'smp' : '~')).join(' ');
+    const { grid, exact } = codeToGrid([bsLine, pdLine, smLine].join('\n'));
+    expect(exact).toBe(true);
+    expect(grid.bs[0]).toBe(true);
+    expect(grid.pd[4]).toBe(true);
+    expect(grid.sm[8]).toBe(true);
   });
 });

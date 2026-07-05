@@ -246,6 +246,7 @@ input[type='range']:focus-visible {
 /* STEPモード: 5レーン(bd/sd/hh/oh/cp) x 16ステップの視覚的シーケンサー */
 .stepview {
   display: none;
+  flex-direction: column;
   flex: 1;
   overflow-x: auto;
   padding: 10px 12px;
@@ -332,6 +333,67 @@ input[type='range']:focus-visible {
   to {
     transform: translateX(1500%);
   }
+}
+/* STEPモード追補: サンプラー読込/録音 + アルペジエイター設定 */
+.stepextra {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--hue) 30%, transparent);
+  min-width: 360px;
+}
+.samplerctrl,
+.arpctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+.samplerctrl button,
+.arpctrl button {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--hue);
+  background: transparent;
+  color: var(--hue);
+  cursor: pointer;
+}
+.samplerctrl button:hover,
+.arpctrl button:hover {
+  background: color-mix(in srgb, var(--hue) 18%, transparent);
+}
+.samplerctrl button:focus-visible,
+.arpctrl button:focus-visible,
+.arpctrl select:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.smstatus {
+  color: var(--mid);
+  letter-spacing: 0.04em;
+}
+.smrec.recording {
+  background: #ff5ce1;
+  border-color: #ff5ce1;
+  color: #05070d;
+  animation: blink 1s step-end infinite;
+}
+.arptoggle.active {
+  background: var(--hue);
+  color: #05070d;
+  font-weight: 700;
+}
+.arpctrl select {
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--hue) 50%, transparent);
+  background: var(--panel);
+  color: var(--hue);
 }
 .terr {
   padding: 0 12px 6px;

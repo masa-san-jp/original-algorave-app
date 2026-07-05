@@ -6,6 +6,8 @@
 import type { Track, TrackRefs } from './state';
 import { STEP_LANES, STEP_LABELS, STEP_COUNT } from './stepgrid';
 import type { Lane } from './stepgrid';
+import { ARP_ROOTS, ARP_QUALITIES, ARP_PATTERNS } from './arpeggiator';
+import type { ArpConfig } from './arpeggiator';
 
 export interface TrackCallbacks {
   onRun: (t: Track) => void;
@@ -18,7 +20,25 @@ export interface TrackCallbacks {
   onCodeChange: (t: Track, code: string) => void;
   onToggleMode: (t: Track) => void;
   onStepToggle: (t: Track, lane: Lane, step: number) => void;
+  onSampleFile: (t: Track, file: File) => void;
+  onSampleRecordToggle: (t: Track) => void;
+  onArpChange: (t: Track, patch: Partial<ArpConfig>) => void;
 }
+
+const ARP_QUALITY_LABELS: Record<string, string> = {
+  maj: 'Major',
+  min: 'Minor',
+  maj7: 'Maj7',
+  min7: 'Min7',
+  dom7: 'Dom7',
+  sus4: 'Sus4',
+};
+const ARP_PATTERN_LABELS: Record<string, string> = {
+  up: 'UP',
+  down: 'DOWN',
+  updown: 'UP-DOWN',
+  random: 'RANDOM',
+};
 
 // STEPビューは固定形状(5レーン×16ステップ)の静的マークアップ。値は定数のみなので
 // innerHTML に埋め込んでも安全(ユーザー入力は一切含まない)。
@@ -29,12 +49,37 @@ function stepCellsHTML(lane: Lane): string {
   }
   return s;
 }
+function optionsHTML(values: readonly string[], labels?: Record<string, string>): string {
+  return values.map((v) => `<option value="${v}">${labels?.[v] ?? v.toUpperCase()}</option>`).join('');
+}
+
+function stepExtraHTML(): string {
+  return `
+    <div class="stepextra">
+      <div class="samplerctrl">
+        <span class="stepname">SM</span>
+        <button type="button" class="smload" aria-label="サンプルをアップロード">📁 読込</button>
+        <button type="button" class="smrec" aria-label="マイクで録音">⏺ 録音</button>
+        <span class="smstatus"></span>
+        <input type="file" class="smfile" accept="audio/*" hidden aria-hidden="true">
+      </div>
+      <div class="arpctrl">
+        <span class="stepname">ARP</span>
+        <button type="button" class="arptoggle" aria-label="アルペジエイターの有効/無効"></button>
+        <select class="arproot" aria-label="アルペジエイターのルート音">${optionsHTML(ARP_ROOTS)}</select>
+        <select class="arpoctave" aria-label="アルペジエイターのオクターブ">${optionsHTML(['2', '3', '4'])}</select>
+        <select class="arpquality" aria-label="アルペジエイターのコード種類">${optionsHTML(ARP_QUALITIES, ARP_QUALITY_LABELS)}</select>
+        <select class="arppattern" aria-label="アルペジエイターのパターン">${optionsHTML(ARP_PATTERNS, ARP_PATTERN_LABELS)}</select>
+      </div>
+    </div>`;
+}
+
 function stepViewHTML(): string {
   const rows = STEP_LANES.map(
     (lane) =>
       `<div class="steprow" data-lane="${lane}"><span class="stepname">${STEP_LABELS[lane]}</span><div class="stepcells">${stepCellsHTML(lane)}</div></div>`,
   ).join('');
-  return `<div class="stepview"><div class="stepgridinner">${rows}<div class="stepplayhead" aria-hidden="true"></div></div></div>`;
+  return `<div class="stepview"><div class="stepgridinner">${rows}<div class="stepplayhead" aria-hidden="true"></div></div>${stepExtraHTML()}</div>`;
 }
 
 // 静的テンプレート(ユーザー入力を含まないため innerHTML 使用可)
@@ -84,6 +129,15 @@ export function buildTrackDOM(t: Track, hue: string, cb: TrackCallbacks): HTMLEl
         div.querySelectorAll<HTMLButtonElement>(`.steprow[data-lane="${lane}"] .stepcell`),
       ),
     ),
+    smLoadBtn: q<HTMLButtonElement>('.smload'),
+    smRecBtn: q<HTMLButtonElement>('.smrec'),
+    smStatus: q('.smstatus'),
+    smFileInput: q<HTMLInputElement>('.smfile'),
+    arpToggle: q<HTMLButtonElement>('.arptoggle'),
+    arpRoot: q<HTMLSelectElement>('.arproot'),
+    arpOctave: q<HTMLSelectElement>('.arpoctave'),
+    arpQuality: q<HTMLSelectElement>('.arpquality'),
+    arpPattern: q<HTMLSelectElement>('.arppattern'),
   };
   t.el = div;
   t.refs = refs;
@@ -119,6 +173,27 @@ export function buildTrackDOM(t: Track, hue: string, cb: TrackCallbacks): HTMLEl
     });
   });
 
+  refs.smLoadBtn.addEventListener('click', () => refs.smFileInput.click());
+  refs.smFileInput.addEventListener('change', () => {
+    const file = refs.smFileInput.files?.[0];
+    if (file) cb.onSampleFile(t, file);
+    refs.smFileInput.value = '';
+  });
+  refs.smRecBtn.addEventListener('click', () => cb.onSampleRecordToggle(t));
+  refs.arpToggle.addEventListener('click', () => cb.onArpChange(t, { enabled: !t.arp.enabled }));
+  refs.arpRoot.addEventListener('change', () =>
+    cb.onArpChange(t, { root: refs.arpRoot.value as ArpConfig['root'] }),
+  );
+  refs.arpOctave.addEventListener('change', () =>
+    cb.onArpChange(t, { octave: +refs.arpOctave.value }),
+  );
+  refs.arpQuality.addEventListener('change', () =>
+    cb.onArpChange(t, { quality: refs.arpQuality.value as ArpConfig['quality'] }),
+  );
+  refs.arpPattern.addEventListener('change', () =>
+    cb.onArpChange(t, { pattern: refs.arpPattern.value as ArpConfig['pattern'] }),
+  );
+
   return div;
 }
 
@@ -144,4 +219,13 @@ export function paintTrack(t: Track, name: string, playing: boolean, deletable: 
       btn.setAttribute('aria-pressed', String(on));
     });
   });
+  r.smStatus.textContent = t.sampleStatus;
+  r.smRecBtn.textContent = t.recording ? '⏹ 停止' : '⏺ 録音';
+  r.smRecBtn.classList.toggle('recording', t.recording);
+  r.arpToggle.textContent = t.arp.enabled ? 'ON' : 'OFF';
+  r.arpToggle.classList.toggle('active', t.arp.enabled);
+  r.arpRoot.value = t.arp.root;
+  r.arpOctave.value = String(t.arp.octave);
+  r.arpQuality.value = t.arp.quality;
+  r.arpPattern.value = t.arp.pattern;
 }

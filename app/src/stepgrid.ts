@@ -4,7 +4,7 @@
 // (query/parser には一切手を入れず、生成したコードが既存のRUN経路をそのまま通る)。
 // ============================================================================
 
-export const STEP_LANES = ['bd', 'sd', 'hh', 'oh', 'cp'] as const;
+export const STEP_LANES = ['bd', 'sd', 'hh', 'oh', 'cp', 'bs', 'pd', 'sm'] as const;
 export type Lane = (typeof STEP_LANES)[number];
 
 export const STEP_LABELS: Record<Lane, string> = {
@@ -13,6 +13,9 @@ export const STEP_LABELS: Record<Lane, string> = {
   hh: 'HH',
   oh: 'OH',
   cp: 'CP',
+  bs: 'BS',
+  pd: 'PD',
+  sm: 'SM',
 };
 
 export const STEP_COUNT = 16;
@@ -20,7 +23,15 @@ export const STEP_COUNT = 16;
 export type StepGrid = Record<Lane, boolean[]>;
 
 // 記法仕様書 §2.1 の別名をレーンへ正規化する
-const LANE_ALIASES: Record<string, Lane> = { sn: 'sd', kick: 'bd', clap: 'cp' };
+const LANE_ALIASES: Record<string, Lane> = {
+  sn: 'sd',
+  kick: 'bd',
+  clap: 'cp',
+  bass: 'bs',
+  pad: 'pd',
+  sample: 'sm',
+  smp: 'sm',
+};
 const LANE_SET: ReadonlySet<string> = new Set(STEP_LANES);
 
 function normalizeTok(raw: string): string {

@@ -6,6 +6,8 @@ import type { Node } from './types';
 import type { Instrument } from './audio';
 import { emptyGrid } from './stepgrid';
 import type { StepGrid } from './stepgrid';
+import { defaultArpConfig } from './arpeggiator';
+import type { ArpConfig } from './arpeggiator';
 
 export const HUES = ['#ffb454', '#59f7ff', '#ff5ce1', '#a6ff4d', '#c09bff', '#ff7a59'];
 export const MAX_TRACKS = 6;
@@ -29,6 +31,15 @@ export interface TrackRefs {
   modeBtn: HTMLButtonElement;
   /** [レーン順(STEP_LANES) の index][ステップ index] */
   stepCells: HTMLButtonElement[][];
+  smLoadBtn: HTMLButtonElement;
+  smRecBtn: HTMLButtonElement;
+  smStatus: HTMLElement;
+  smFileInput: HTMLInputElement;
+  arpToggle: HTMLButtonElement;
+  arpRoot: HTMLSelectElement;
+  arpOctave: HTMLSelectElement;
+  arpQuality: HTMLSelectElement;
+  arpPattern: HTMLSelectElement;
 }
 
 export interface Track {
@@ -48,6 +59,12 @@ export interface Track {
   mode: TrackMode;
   /** STEPモード用のグリッド。code とは gridToCode/codeToGrid で相互変換する別ビュー。 */
   grid: StepGrid;
+  /** アルペジエイター設定。有効時、code の1行として自動生成される(main.ts の regenerateStepCode)。 */
+  arp: ArpConfig;
+  /** サンプラー(smレーン)の読み込み状態表示用ラベル。実体の音声バッファは Instrument 側が保持し永続化しない。 */
+  sampleStatus: string;
+  /** マイク録音中か(サンプラーの録音ボタン表示用の一時的なUIフラグ)。 */
+  recording: boolean;
 }
 
 let uid = 0;
@@ -67,6 +84,9 @@ export function newTrack(code: string): Track {
     refs: null,
     mode: 'code',
     grid: emptyGrid(),
+    arp: defaultArpConfig(),
+    sampleStatus: '未読込',
+    recording: false,
   };
 }
 

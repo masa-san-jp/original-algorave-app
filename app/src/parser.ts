@@ -15,10 +15,18 @@ const DRUM_ALIASES: Record<string, string> = {
   oh: 'oh',
   cp: 'cp',
   clap: 'cp',
+  // ベース/シンセパッド/サンプラー(追補: STEPモードのベース・パッド・サンプラー)
+  bs: 'bs',
+  bass: 'bs',
+  pd: 'pd',
+  pad: 'pd',
+  sm: 'sm',
+  sample: 'sm',
+  smp: 'sm',
 };
 
 // ドラムの正規名(音源トリガのために使う集合)
-export const DRUM_NAMES = new Set(['bd', 'sd', 'hh', 'oh', 'cp']);
+export const DRUM_NAMES = new Set(['bd', 'sd', 'hh', 'oh', 'cp', 'bs', 'pd', 'sm']);
 
 // 音名(記法仕様書 §2.2)
 export const NOTE_RE = /^[a-g](#|b)?[0-8]$/;

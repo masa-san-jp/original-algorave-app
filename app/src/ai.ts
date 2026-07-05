@@ -11,6 +11,7 @@ const TIMEOUT_MS = 30_000;
 const AI_SYSTEM = `You generate patterns for a mini live-coding music language used in an algorave app.
 Tokens:
 - Drums: bd(kick) sd(snare) hh(closed hihat) oh(open hihat) cp(clap)
+- bs = bass (fixed low note voice), pd = synth pad (fixed sustained chord), sm = sampler one-shot (silent until the user loads/records a sample; still fine to include)
 - Notes: note names like c2 e3 g#2 a#1 eb2 (playable synth notes)
 - ~ = rest
 - [a b] = subdivide one step; nesting allowed
