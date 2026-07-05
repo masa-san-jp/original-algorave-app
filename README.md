@@ -2,6 +2,12 @@
 
 スマホ・ラップトップで演奏できるalgoraveアプリケーション。ターミナル形式で複数トラックを操作し、ミキシング・AI生成を行う。
 
+## 公開版(GitHub Pages)
+👉 **https://masa-san-jp.github.io/original-algorave-app/**
+
+`main` への push で `app/` が自動ビルド・公開される([deploy workflow](.github/workflows/deploy.yml))。
+初回のみリポジトリ設定 **Settings → Pages → Source** を「GitHub Actions」にする必要があります。
+
 ## 構成
 - `app/` — **v1 実装本体**(TypeScript + Vite + Tone.js、テスト・CI付き)。詳細は [`app/README.md`](app/README.md)
 - `index.html` — 着想元の参照プロトタイプ(単一ファイル、ビルド不要、Tone.jsをCDN読み込み)
