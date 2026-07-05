@@ -19,6 +19,7 @@ cd app && npm install && npm run dev
 | [記法仕様書](docs/20260703-algorave-v1-notation-spec.md) | Strudel/TidalCycles互換ミニノーテーションのEBNF・意味論・ゴールデンテストベクタ |
 | [受け入れテスト仕様書](docs/20260703-algorave-v1-acceptance.md) | 検収条件・環境マトリクス・テストケース |
 | [実装計画書](docs/20260703-algorave-v1-plan.md) | マイルストーン・WBS・リスク・変更管理 |
+| [既存ソフトウェアとの比較検討](docs/20260705-algorave-landscape-comparison.md) | TidalCycles・Strudel・Sonic Pi等との比較、記法互換性の再検証、本アプリ独自の価値の整理 |
 
 ## 起動方法
 ```bash
