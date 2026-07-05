@@ -4,6 +4,8 @@
 
 import type { Node } from './types';
 import type { Instrument } from './audio';
+import { emptyGrid } from './stepgrid';
+import type { StepGrid } from './stepgrid';
 
 export const HUES = ['#ffb454', '#59f7ff', '#ff5ce1', '#a6ff4d', '#c09bff', '#ff7a59'];
 export const MAX_TRACKS = 6;
@@ -11,6 +13,8 @@ export const MAX_TRACKS = 6;
 // デモパターン(機能仕様書 FR-02。プロトタイプと同一)
 export const DEFAULT_PATTERNS = ['bd ~ bd ~\n~ sn ~ sn\nhh*8', 'c2 ~ [c2 c3] g1\n~ ~ eb2 ~'];
 export const NEW_TRACK_CODE = 'bd ~ ~ bd';
+
+export type TrackMode = 'code' | 'step';
 
 export interface TrackRefs {
   name: HTMLElement;
@@ -22,6 +26,9 @@ export interface TrackRefs {
   stop: HTMLButtonElement;
   mute: HTMLButtonElement;
   ai: HTMLButtonElement;
+  modeBtn: HTMLButtonElement;
+  /** [レーン順(STEP_LANES) の index][ステップ index] */
+  stepCells: HTMLButtonElement[][];
 }
 
 export interface Track {
@@ -36,6 +43,11 @@ export interface Track {
   inst: Instrument | null;
   el: HTMLElement | null;
   refs: TrackRefs | null;
+  /** 'code'(エディタ) / 'step'(ステップシーケンサー)。既定は 'code'、リロードでも常に 'code' に戻る
+   *  (パターン本体は t.code として永続化されるため、表示モードだけが初期化される)。 */
+  mode: TrackMode;
+  /** STEPモード用のグリッド。code とは gridToCode/codeToGrid で相互変換する別ビュー。 */
+  grid: StepGrid;
 }
 
 let uid = 0;
@@ -53,6 +65,8 @@ export function newTrack(code: string): Track {
     inst: null,
     el: null,
     refs: null,
+    mode: 'code',
+    grid: emptyGrid(),
   };
 }
 

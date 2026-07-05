@@ -8,6 +8,8 @@ import { parse, layersHaveSound } from './parser';
 import { buildInstrument } from './audio';
 import { ensureTransport, stopTransport, setBpm } from './scheduler';
 import { aiGenerate } from './ai';
+import { gridToCode, codeToGrid } from './stepgrid';
+import type { Lane } from './stepgrid';
 import {
   HUES,
   MAX_TRACKS,
@@ -127,7 +129,36 @@ const callbacks: TrackCallbacks = {
     t.code = code;
     persist();
   },
+  onToggleMode: (t) => toggleMode(t),
+  onStepToggle: (t, lane, step) => stepToggle(t, lane, step),
 };
+
+// ---------------------------------------------------------------------------
+// STEPモード(ステップシーケンサー): グリッドは常に t.code の別ビュー(stepgrid.ts)
+// ---------------------------------------------------------------------------
+function toggleMode(t: Track): void {
+  if (t.mode === 'code') {
+    const { grid, exact } = codeToGrid(t.code);
+    t.grid = grid;
+    t.mode = 'step';
+    t.error = exact
+      ? null
+      : '現在のコードはSTEPモードで完全には表現できません(変換できた範囲のみ反映)';
+  } else {
+    t.mode = 'code';
+  }
+  repaint(t);
+}
+
+function stepToggle(t: Track, lane: Lane, step: number): void {
+  t.grid[lane][step] = !t.grid[lane][step];
+  t.code = gridToCode(t.grid);
+  if (t.refs) t.refs.textarea.value = t.code;
+  persist();
+  // ステップ操作は「叩いた通りにすぐ音が変わる」ことが直感的なため、
+  // 明示RUNを待たず即座に反映する(次サイクル境界からという挙動はFR-03のまま)。
+  void runTrack(t);
+}
 
 function mountTrack(t: Track): void {
   const el = buildTrackDOM(t, hueOf(t), callbacks);

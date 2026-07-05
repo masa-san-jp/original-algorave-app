@@ -176,6 +176,29 @@ input[type='range']:focus-visible {
   opacity: 0.3;
   cursor: default;
 }
+.modebtn {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--hue);
+  background: transparent;
+  color: var(--hue);
+  cursor: pointer;
+}
+.modebtn:hover {
+  background: color-mix(in srgb, var(--hue) 18%, transparent);
+}
+.modebtn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.editorwrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 130px;
+}
 .term textarea {
   background: transparent;
   color: var(--hue);
@@ -192,6 +215,123 @@ input[type='range']:focus-visible {
   min-height: 130px;
   flex: 1;
   caret-color: var(--hue);
+}
+/* ループ進行を示すプレイヘッド(CODEモード)。running 中だけ var(--measure) 周期で
+   端から端まで走査する。beatPulse と同じ「点灯はJS/CSSクラス切替、周期はCSS変数」規約。 */
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--hue);
+  box-shadow:
+    0 0 8px var(--hue),
+    0 0 2px #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+.term.running .playhead {
+  opacity: 0.85;
+  animation: playheadSweep var(--measure, 1.8s) linear infinite;
+}
+@keyframes playheadSweep {
+  0% {
+    left: 0%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+/* STEPモード: 5レーン(bd/sd/hh/oh/cp) x 16ステップの視覚的シーケンサー */
+.stepview {
+  display: none;
+  flex: 1;
+  overflow-x: auto;
+  padding: 10px 12px;
+}
+.term.mode-step .stepview {
+  display: flex;
+}
+.term.mode-step .codeview {
+  display: none;
+}
+.stepgridinner {
+  position: relative;
+  min-width: 360px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+}
+.steprow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stepname {
+  width: 30px;
+  flex-shrink: 0;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--hue);
+  text-align: right;
+}
+.stepcells {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 3px;
+  flex: 1;
+}
+.stepcell {
+  aspect-ratio: 1;
+  min-width: 16px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--hue) 45%, transparent);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+.stepcell:nth-child(4n + 1) {
+  border-left-width: 2px;
+}
+.stepcell:hover {
+  background: color-mix(in srgb, var(--hue) 15%, transparent);
+}
+.stepcell:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+.stepcell.active {
+  background: var(--hue);
+  box-shadow: 0 0 6px var(--hue);
+}
+/* ループ進行を示すプレイヘッド(STEPモード): 16分割のチェイスライト */
+.stepplayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 30px;
+  width: calc((100% - 30px - 6px) / 16);
+  margin-left: 6px;
+  background: color-mix(in srgb, var(--hue) 22%, transparent);
+  border-left: 1px solid var(--hue);
+  border-right: 1px solid var(--hue);
+  opacity: 0;
+  pointer-events: none;
+}
+.term.running .stepplayhead {
+  opacity: 1;
+  animation: stepChase var(--measure, 1.8s) steps(16, jump-start) infinite;
+}
+@keyframes stepChase {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(1500%);
+  }
 }
 .terr {
   padding: 0 12px 6px;
@@ -279,6 +419,9 @@ input[type='range']:focus-visible {
   .term textarea {
     min-height: 180px;
   }
+  .stepview {
+    min-height: 180px;
+  }
   .term.m-hidden {
     display: none;
   }
@@ -294,5 +437,10 @@ input[type='range']:focus-visible {
   }
   .blink {
     animation: none;
+  }
+  .term.running .playhead,
+  .term.running .stepplayhead {
+    animation: none;
+    opacity: 0;
   }
 }

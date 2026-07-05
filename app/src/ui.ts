@@ -4,6 +4,8 @@
 // ============================================================================
 
 import type { Track, TrackRefs } from './state';
+import { STEP_LANES, STEP_LABELS, STEP_COUNT } from './stepgrid';
+import type { Lane } from './stepgrid';
 
 export interface TrackCallbacks {
   onRun: (t: Track) => void;
@@ -14,6 +16,25 @@ export interface TrackCallbacks {
   onFilt: (t: Track, v: number) => void;
   onDelete: (t: Track) => void;
   onCodeChange: (t: Track, code: string) => void;
+  onToggleMode: (t: Track) => void;
+  onStepToggle: (t: Track, lane: Lane, step: number) => void;
+}
+
+// STEPビューは固定形状(5レーン×16ステップ)の静的マークアップ。値は定数のみなので
+// innerHTML に埋め込んでも安全(ユーザー入力は一切含まない)。
+function stepCellsHTML(lane: Lane): string {
+  let s = '';
+  for (let i = 0; i < STEP_COUNT; i++) {
+    s += `<button type="button" class="stepcell" data-step="${i}" aria-pressed="false" aria-label="${STEP_LABELS[lane]} ${i + 1}拍目"></button>`;
+  }
+  return s;
+}
+function stepViewHTML(): string {
+  const rows = STEP_LANES.map(
+    (lane) =>
+      `<div class="steprow" data-lane="${lane}"><span class="stepname">${STEP_LABELS[lane]}</span><div class="stepcells">${stepCellsHTML(lane)}</div></div>`,
+  ).join('');
+  return `<div class="stepview"><div class="stepgridinner">${rows}<div class="stepplayhead" aria-hidden="true"></div></div></div>`;
 }
 
 // 静的テンプレート(ユーザー入力を含まないため innerHTML 使用可)
@@ -21,10 +42,15 @@ const TEMPLATE = `
   <div class="thead">
     <span class="tname"></span>
     <span class="tstatus" style="opacity:0.6"></span>
+    <button type="button" class="modebtn" aria-label="STEP/CODEモード切替"></button>
     <span class="tmute" style="color:#ff5ce1"></span>
     <button class="x" aria-label="トラックを削除">×</button>
   </div>
-  <textarea spellcheck="false" aria-label="パターンコード"></textarea>
+  <div class="editorwrap">
+    <textarea class="codeview" spellcheck="false" aria-label="パターンコード"></textarea>
+    ${stepViewHTML()}
+    <div class="playhead" aria-hidden="true"></div>
+  </div>
   <div class="terr"></div>
   <div class="tfoot">
     <button class="btn solid run">RUN ⏎</button>
@@ -46,12 +72,18 @@ export function buildTrackDOM(t: Track, hue: string, cb: TrackCallbacks): HTMLEl
     name: q('.tname'),
     status: q('.tstatus'),
     muteTag: q('.tmute'),
-    textarea: q<HTMLTextAreaElement>('textarea'),
+    textarea: q<HTMLTextAreaElement>('.codeview'),
     error: q('.terr'),
     run: q<HTMLButtonElement>('.run'),
     stop: q<HTMLButtonElement>('.stop'),
     mute: q<HTMLButtonElement>('.mute'),
     ai: q<HTMLButtonElement>('.ai'),
+    modeBtn: q<HTMLButtonElement>('.modebtn'),
+    stepCells: STEP_LANES.map((lane) =>
+      Array.from(
+        div.querySelectorAll<HTMLButtonElement>(`.steprow[data-lane="${lane}"] .stepcell`),
+      ),
+    ),
   };
   t.el = div;
   t.refs = refs;
@@ -80,6 +112,12 @@ export function buildTrackDOM(t: Track, hue: string, cb: TrackCallbacks): HTMLEl
     cb.onFilt(t, +(e.target as HTMLInputElement).value),
   );
   q<HTMLButtonElement>('.x').addEventListener('click', () => cb.onDelete(t));
+  refs.modeBtn.addEventListener('click', () => cb.onToggleMode(t));
+  refs.stepCells.forEach((cells, laneIdx) => {
+    cells.forEach((btn, stepIdx) => {
+      btn.addEventListener('click', () => cb.onStepToggle(t, STEP_LANES[laneIdx], stepIdx));
+    });
+  });
 
   return div;
 }
@@ -89,12 +127,21 @@ export function paintTrack(t: Track, name: string, playing: boolean, deletable: 
   if (!t.el || !t.refs) return;
   const r = t.refs;
   t.el.classList.toggle('running', t.running && playing && !t.muted);
+  t.el.classList.toggle('mode-step', t.mode === 'step');
   r.name.textContent = name;
   r.status.textContent = t.running ? 'RUNNING' : 'IDLE';
   r.muteTag.textContent = t.muted ? 'MUTED' : '';
   r.mute.textContent = t.muted ? 'UNMUTE' : 'MUTE';
   r.stop.disabled = !t.running;
   r.error.textContent = t.error ?? '';
+  r.modeBtn.textContent = t.mode === 'step' ? '⌨ CODE' : '⊞ STEP';
   const x = t.el.querySelector<HTMLButtonElement>('.x');
   if (x) x.disabled = !deletable;
+  STEP_LANES.forEach((lane, laneIdx) => {
+    r.stepCells[laneIdx].forEach((btn, stepIdx) => {
+      const on = t.grid[lane][stepIdx];
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+  });
 }
