@@ -78,7 +78,7 @@ npx wrangler pages deploy dist --project-name=<プロジェクト名> --branch=m
    - **Build output directory**: `app/dist`(ルート直下なら `dist`)
 4. Save and Deploy。以後、対象ブランチへ push するたびに自動ビルド&公開。プレビューデプロイ(PRごとの一時URL)も自動で付く。
 
-> サブディレクトリ運用の注意: build output directory はリポジトリルートからの相対。`app/dist` のように親を含めて指定する。
+> サブディレクトリ運用の注意: build output directory はリポジトリルートからの相対。`app/dist` のように親を含めて指定する。あるいは **Root directory** をサブディレクトリ(例 `app`)に設定し、そこに `wrangler.toml`(`pages_build_output_dir = "./dist"`)を置けば、出力先とプロジェクト名が設定ファイルで宣言され、ダッシュボードUIの値とブレない(このリポジトリは `app/wrangler.toml` を採用)。
 
 ---
 

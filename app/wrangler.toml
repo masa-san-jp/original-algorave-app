@@ -1,0 +1,16 @@
+# Cloudflare Pages 設定(Git 連携 / wrangler CLI 共通)。
+#
+# ● Git 連携(ダッシュボードで GitHub を接続する方式):
+#     Cloudflare が push を検知して自動ビルド&公開する。GitHub Actions もシークレットも不要。
+#     ダッシュボードのビルド設定:
+#       - Root directory (Build > Advanced): app
+#       - Build command: npm ci && npm run build
+#       - Build output directory: dist   ← ここで指定した pages_build_output_dir が使われる
+#     Root directory を app にすることで、この app/wrangler.toml が読み込まれる。
+#
+# ● wrangler CLI / GitHub Actions:
+#     app/ を作業ディレクトリにして `wrangler pages deploy`(引数なし)で
+#     下の pages_build_output_dir を出力先として公開できる。
+name = "original-algorave-app"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-07-09"
