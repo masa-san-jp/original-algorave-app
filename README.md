@@ -16,6 +16,8 @@
 ### GitHub Pages 👉 https://masa-san-jp.github.io/original-algorave-app/
 [deploy workflow](.github/workflows/deploy.yml)。初回のみ **Settings → Pages → Source** を「GitHub Actions」にする必要があります。
 
+> 📦 Cloudflare Pages の無料デプロイ手順は再利用可能な Claude Code スキルにまとめてあります: [`.claude/skills/cloudflare-deploy/`](.claude/skills/cloudflare-deploy/SKILL.md)(CLI直接 / GitHub Actions / ダッシュボードGit連携の3方式、API トークン取得、ワンコマンド公開スクリプト付き)。`/cloudflare-deploy` で呼び出せます。
+
 ## 構成
 - `app/` — **v1 実装本体**(TypeScript + Vite + Tone.js、テスト・CI付き)。詳細は [`app/README.md`](app/README.md)
 - `index.html` — 着想元の参照プロトタイプ(単一ファイル、ビルド不要、Tone.jsをCDN読み込み)
