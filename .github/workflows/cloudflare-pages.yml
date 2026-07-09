@@ -52,4 +52,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: app
-          command: pages deploy dist --project-name=original-algorave-app --branch=main
+          # プロジェクト名(name)と出力先(pages_build_output_dir)は app/wrangler.toml から取得
+          command: pages deploy --branch=main
