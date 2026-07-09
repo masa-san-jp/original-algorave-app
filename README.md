@@ -2,11 +2,19 @@
 
 スマホ・ラップトップで演奏できるalgoraveアプリケーション。ターミナル形式で複数トラックを操作し、ミキシング・AI生成を行う。
 
-## 公開版(GitHub Pages)
-👉 **https://masa-san-jp.github.io/original-algorave-app/**
+## 公開版
 
-`main` への push で `app/` が自動ビルド・公開される([deploy workflow](.github/workflows/deploy.yml))。
-初回のみリポジトリ設定 **Settings → Pages → Source** を「GitHub Actions」にする必要があります。
+`main` への push で `app/` が自動ビルド・公開されます。GitHub Pages と Cloudflare Pages の両方に対応しています(片方だけ使ってもOK)。
+
+### Cloudflare Pages 👉 https://original-algorave-app.pages.dev
+[deploy workflow](.github/workflows/cloudflare-pages.yml)。初回のみ以下の設定が必要です:
+1. Cloudflare で **API トークン**(「Cloudflare Pages : Edit」権限)を発行し、**アカウントID**を控える。
+2. Pages プロジェクトを作成(名前 `original-algorave-app`)。
+   ダッシュボードの Direct Upload、または `npx wrangler pages project create original-algorave-app --production-branch=main`。
+3. GitHub の **Settings → Secrets and variables → Actions** に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録。
+
+### GitHub Pages 👉 https://masa-san-jp.github.io/original-algorave-app/
+[deploy workflow](.github/workflows/deploy.yml)。初回のみ **Settings → Pages → Source** を「GitHub Actions」にする必要があります。
 
 ## 構成
 - `app/` — **v1 実装本体**(TypeScript + Vite + Tone.js、テスト・CI付き)。詳細は [`app/README.md`](app/README.md)
