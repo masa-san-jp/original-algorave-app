@@ -1,29 +1,30 @@
 name: Deploy to Cloudflare Pages
 
-# main への push で app/ をビルドし、Cloudflare Pages に公開する。
+# GitHub Actions 経由で app/ をビルドし Cloudflare Pages に公開する「方法2」の workflow。
 #
-# 事前準備(初回のみ):
-#   1. Cloudflare アカウントを用意(無料)。
-#   2. API トークンを発行: My Profile > API Tokens > Create Token
-#      「Cloudflare Pages : Edit」権限を含むトークンにする。
-#   3. アカウント ID を控える(ダッシュボード or Workers & Pages 画面の右側)。
-#   4. Pages プロジェクトを一度作成する(どちらでも可):
-#      - ダッシュボードで Workers & Pages > Create > Pages > Direct Upload、名前を
-#        original-algorave-app にする、または
-#      - `npx wrangler pages project create original-algorave-app --production-branch=main`
-#   5. GitHub リポジトリ Settings > Secrets and variables > Actions に登録:
-#      - CLOUDFLARE_API_TOKEN
-#      - CLOUDFLARE_ACCOUNT_ID
+# ● このリポジトリの既定は Cloudflare の Git 連携(ダッシュボードで GitHub を接続する方式)です。
+#   push 時の自動ビルド&公開は Cloudflare 側が担当するため、この workflow は既定では
+#   push で走らせず、手動実行(workflow_dispatch)専用にしています。二重デプロイと、
+#   シークレット未設定時の失敗表示(ノイズ)を避けるためです。
+#
+# ● Actions 方式に切り替えたい場合(Git 連携をやめてコードで管理したい等):
+#   1. 下の push: トリガーのコメントアウトを解除する。
+#   2. API トークンを発行(My Profile > API Tokens、「Cloudflare Pages : Edit」権限)。
+#   3. GitHub の Settings > Secrets and variables > Actions に登録:
+#        - CLOUDFLARE_API_TOKEN
+#        - CLOUDFLARE_ACCOUNT_ID
+#   4. Pages プロジェクト(名前 original-algorave-app)を一度作成:
+#        npx wrangler pages project create original-algorave-app --production-branch=main
 #   これで main への push ごとに https://original-algorave-app.pages.dev へ自動公開される。
 
 on:
-  push:
-    branches: ['main']
-    # app/ かこのワークフロー自体が変わったときだけ再デプロイする
-    paths:
-      - 'app/**'
-      - '.github/workflows/cloudflare-pages.yml'
   workflow_dispatch:
+  # Git 連携をやめて Actions 方式にする場合は、この push: の各行のコメントを外す。
+  # push:
+  #   branches: ['main']
+  #   paths:
+  #     - 'app/**'
+  #     - '.github/workflows/cloudflare-pages.yml'
 
 permissions:
   contents: read
