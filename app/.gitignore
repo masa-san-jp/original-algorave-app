@@ -4,3 +4,7 @@ dist-single/
 coverage/
 *.local
 .DS_Store
+
+# Capacitor native projects (generate locally with `npx cap add ios/android`)
+ios/
+android/
