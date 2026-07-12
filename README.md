@@ -45,6 +45,7 @@ cd app && npm install && npm run dev
 | [実装計画書](docs/20260703-algorave-v1-plan.md) | マイルストーン・WBS・リスク・変更管理 |
 | [既存ソフトウェアとの比較検討](docs/20260705-algorave-landscape-comparison.md) | TidalCycles・Strudel・Sonic Pi等との比較、記法互換性の再検証、本アプリ独自の価値の整理 |
 | [追補: STEPモード + ループ進行プレイヘッド + ベース/パッド/ARP/サンプラー](docs/20260705-algorave-v1-addendum-sequencer.md) | 視覚的ステップシーケンサー(FR-13)・BPM連動プレイヘッド(FR-14)・ベース/シンセパッド(FR-15)・アルペジエイター(FR-16)・サンプラー(FR-17)の追加仕様 |
+| [ネイティブアプリ化ロードマップ](docs/20260712-native-app-roadmap.md) | Web版でUXを詰めてからネイティブ公開する2フェーズ戦略。アプリ化3方式(WebViewラップ/ネイティブ再実装/PWA)の比較・UXチェックリスト・公開手順 |
 
 ## 起動方法
 ```bash
