@@ -52,3 +52,15 @@ cd app && npm install && npm run dev
 python3 -m http.server 8000
 ```
 詳細は `docs/20260703-algorave-local-server-setup.md` を参照。
+
+## 記法の用例と設計の狙い
+
+例えば `bd ~ sd ~` はキック、休符、スネア、休符を一つのサイクルに置くパターンです。`hh*8` はそのステップ内を8回に細分して鳴らす表現です。「ライブコーディング」は、こうした記述を演奏中に編集して音の構成を変える使い方を指します。対応範囲は[記法仕様](docs/20260703-algorave-v1-notation-spec.md)で定めるサブセットで、Strudel/TidalCycles全体の互換実装ではありません。
+
+[比較検討文書](docs/20260705-algorave-landscape-comparison.md)が掲げる狙いは、スマホでも複数トラックを扱える操作と、生成案を確認してから音へ反映する流れです。[AI実装](app/src/ai.ts)はAnthropic APIにパターンや指示を送り、提案を返します。提案はエディタに置かれ、利用者がRUNするまで演奏へ反映しない設計です。AIは任意機能で、キーのlocalStorage保存や外部送信の注意点は[app/README.md](app/README.md)を参照してください。
+
+## 技術と開発の変遷
+
+文字列はparserで構文木へ、patternでサイクルごとのイベント列へ変換し、schedulerとTone.jsが発音を担います。記法・パターン処理はブラウザ非依存のモジュールとしてテストできるよう分離されています。
+
+ルートの単一HTMLプロトタイプを参照し、2026年7月3日付の仕様群に沿うv1を `app/` へ分離した構成です。その後、[7月12日の単一HTMLビルド対応](https://github.com/masa-san-jp/original-algorave-app/pull/8)と[Capacitor統合](https://github.com/masa-san-jp/original-algorave-app/pull/10)が追加されています。Capacitorの土台があることは、アプリストアでの公開や実機検収を完了したことを意味しません。
